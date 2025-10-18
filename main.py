@@ -9,6 +9,9 @@ app = FastAPI()
 class CityInput(BaseModel):
     city: str
 
+class Topic(BaseModel):
+    topic : str
+
 @app.post("/fetch")
 async def fetch_weather(payload: CityInput):
     query = f"Give me the current weather and clothing recommendations for {payload.city}."
@@ -42,6 +45,15 @@ async def fetch_data()-> Dict[str, str]:
     print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
     return {"result": result.message["content"][0]["text"]}
 
+@app.post("/reddit_custom", response_model=Dict[str, str])
+async def fetch_data(payload: Topic)-> Dict[str, str]:
+    query = f"Fetch top 5 trending news headlines for {Topic.topic} from Reddit"
+    result= crawler_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
+
+
 #TWITTER DATA FETCHING
 @app.post("/twitter_war_news", response_model=Dict[str, str])
 async def fetch_data()-> Dict[str, str]:
@@ -66,3 +78,13 @@ async def fetch_data()-> Dict[str, str]:
     print("type of result:", type(result))
     print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
     return {"result": result.message["content"][0]["text"]}
+
+@app.post("/twitter_custom", response_model=Dict[str, str])
+async def fetch_data(payload: Topic)-> Dict[str, str]:
+    query = f"Fetch top 5 trending news headlines for {Topic.topic} from Twitter"
+    result= twitter_crawler_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
+
+
