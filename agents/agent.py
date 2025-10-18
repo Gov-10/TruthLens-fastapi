@@ -26,5 +26,6 @@ def get_weather(city: str):
     data = requests.get(url, timeout=10).json()
     return data["current_condition"][0]
 
+
 agent = Agent(model=model, tools=[get_weather])
 
