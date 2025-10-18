@@ -1,45 +1,59 @@
 import logging
-logging.basicConfig(level=logging.INFO)
 from strands import Agent, tool
 from strands.models.gemini import GeminiModel
 import requests, os
 from dotenv import load_dotenv
 from datetime import datetime
-from requests.auth import HTTPBasicAuth
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 model = GeminiModel(
     client_args={"api_key": os.getenv("GEMINI_API_KEY")},
     model_id="gemini-2.5-flash",
-    params={"temperature": 0.4, "max_output_tokens": 2048, "top_p": 0.9, "top_k": 40}
+    params={"temperature": 0.4, "max_output_tokens": 2048, "top_p": 0.9, "top_k": 40},
 )
+
 @tool
 def fetch_tweets(topic: str):
+    """
+    Fetch top 10 recent tweets related to a topic using Twitter API v2.
+    Handles rate limits, invalid tokens, and restricted parameters gracefully.
+    """
     topic = topic.strip() or "world news"
     url = "https://api.twitter.com/2/tweets/search/recent"
     headers = {"Authorization": f"Bearer {os.getenv('TWITTER_BEARER_TOKEN')}"}
     params = {
-        "query": topic,
-        "max_results": 5,
-        "tweet.fields": "created_at,public_metrics,lang,source,author_id",
+        # Use safe, context-aware query
+        "query": f"{topic} lang:en -is:retweet",
+        "max_results": 10,  # must be between 10–100
+        "tweet.fields": "created_at,public_metrics,lang,author_id",  # removed unsupported 'source'
         "expansions": "author_id"
     }
 
     try:
         res = requests.get(url, headers=headers, params=params, timeout=10)
         logging.info(f"Twitter status: {res.status_code}")
+
+        if res.status_code == 400:
+            logging.error(f"400 Bad Request: {res.text[:400]}")
+            return {"error": f"400: Bad Request — likely invalid field or unsupported access tier."}
+
         if res.status_code == 403:
             logging.error("403: Access tier does not include tweet search (upgrade required).")
             return {"error": "403: Your access tier does not include tweet search (upgrade required)."}
+
         if res.status_code == 401:
             logging.error("401: Unauthorized — invalid or expired bearer token.")
             return {"error": "401: Unauthorized — invalid bearer token."}
+
         if res.status_code == 429:
             logging.warning("429: Too many requests — rate limit hit.")
             return {"error": "429: Too many requests — rate limit reached."}
+
         res.raise_for_status()
         data = res.json()
+
     except Exception as e:
         logging.exception("Twitter API request failed")
         return {"error": f"Twitter API request failed: {e}"}
@@ -62,6 +76,8 @@ def fetch_tweets(topic: str):
         logging.warning(f"No tweets found for topic: {topic}")
         return {"error": f"No tweets found for topic: {topic}"}
 
+    logging.info(f"Fetched {len(tweets)} tweets for topic: {topic}")
     return {"topic": topic, "tweets": tweets}
+
 
 twitter_crawler_agent = Agent(model=model, tools=[fetch_tweets])
