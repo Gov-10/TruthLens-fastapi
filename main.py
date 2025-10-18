@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from agents.agent import agent
 from agents.crawler_agent import crawler_agent
 from typing import Dict
+from agents.twitter_crawler_agent import twitter_crawler_agent
 app = FastAPI()
 
 class CityInput(BaseModel):
@@ -16,12 +17,52 @@ async def fetch_weather(payload: CityInput):
     print("Keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
     return {"city": payload.city, "result": result.message["content"][0]["text"] }
 
-@app.post("/fetch_data", response_model=Dict[str, str])
+#REDDIT DATA FETCHING
+@app.post("/reddit_war_news", response_model=Dict[str, str])
 async def fetch_data()-> Dict[str, str]:
-    query = "Fetch top 5 trending news around the world"
+    query = "Fetch top 5 trending war news from Reddit"
     result=crawler_agent(query)
     print("type of result:", type(result))
     print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
     return {"result": result.message["content"][0]["text"]}
 
+@app.post("/reddit_politics_news", response_model=Dict[str, str])
+async def fetch_data()-> Dict[str, str]:
+    query = "Fetch top 5 trending politics news from Reddit"
+    result=crawler_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
 
+@app.post("/reddit_natural_disaster_news", response_model=Dict[str, str])
+async def fetch_data()-> Dict[str, str]:
+    query = "Fetch top 5 trending natural disaster news from Reddit"
+    result=crawler_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
+
+#TWITTER DATA FETCHING
+@app.post("/twitter_war_news", response_model=Dict[str, str])
+async def fetch_data()-> Dict[str, str]:
+    query = "war"
+    result=twitter_crawler_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
+
+@app.post("/twitter_politics_news", response_model=Dict[str, str])
+async def fetch_data()-> Dict[str, str]:
+    query = "politics"
+    result=twitter_crawler_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
+
+@app.post("/twitter_natural_disaster_news", response_model=Dict[str, str])
+async def fetch_data()-> Dict[str, str]:
+    query = "natural disaster"
+    result=twitter_crawler_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
