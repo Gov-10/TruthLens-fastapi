@@ -4,6 +4,7 @@ from agents.agent import agent
 from agents.crawler_agent import crawler_agent
 from typing import Dict
 from agents.twitter_crawler_agent import twitter_crawler_agent
+from agents.fake_detector_agent import fake_detector_agent
 app = FastAPI()
 
 class CityInput(BaseModel):
@@ -87,4 +88,14 @@ async def fetch_data(payload: TopicInput)-> Dict[str, str]:
     print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
     return {"result": result.message["content"][0]["text"]}
 
+#FAKE DETECTOR AGENT
+class UrlInput(BaseModel):
+    url_input : str
+@app.post("/detector", response_model=Dict[str, str])
+async def detect_fake(payload: UrlInput)-> Dict[str, str]:
+    query =f"check whether the following content is AI-generated and fake or real {payload.url_input}"
+    result = fake_detector_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
 
