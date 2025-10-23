@@ -17,7 +17,7 @@ model = GeminiModel(
 
 @tool
 def detect_ai_text(text: str):
-    """Detect AI-generated text using ZeroGPT official API, Strands-safe version."""
+    """Detect AI-generated text using ZeroGPT official API. Give a verdict, probability and explanation supporting your verdict"""
     import os, requests, json, logging
     url = "https://api.zerogpt.com/api/detect/detectText"
     api_key = os.getenv("ZEROGPT_API_KEY")
