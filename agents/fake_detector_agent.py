@@ -17,42 +17,82 @@ model = GeminiModel(
 
 @tool
 def detect_ai_text(text: str):
-    """Detect if a given text is AI-generated using Hive Hibernation API
-     Also, give your verdict on its authenticity using any sources
-     """
-    url = "https://api.thehive.ai/api/v2/task/sync"
-    hive_api_key = os.getenv("HIVE_API_KEY")
-    headers = {
-        "Authorization" : f"Token {hive_api_key}"
-    }
-    payload = {"models": ["ai-generated-text-detector"], "text": text}
-    response = requests.post(url, json=payload, headers=headers, timeout=15)
-    result = response.json()
-    return result
+   """
+    Detect if a given text is AI-generated using ZeroGPT API.
+    Returns probability and verdict (AI-generated or human-written).
+    """
+    url = "https://api.zerogpt.com/v1/detect/text"
+    headers = {"Authorization": f"Bearer {os.getenv('ZEROGPT_API_KEY')}"}
+    payload = {"text": text}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        result = data.get("data", {})
+        return {
+            "source": "ZeroGPT",
+            "ai_probability": result.get("ai_probability"),
+            "human_probability": result.get("human_probability"),
+            "verdict": result.get("verdict", "Unknown"),
+        }
+    except Exception as e:
+        logging.error(f"ZeroGPT API Error: {e}")
+        return {"error": str(e), "verdict": "Unknown"}
 
 @tool 
 def detect_ai_image(image_url : str):
-    """ Detect if a given image is AI-generated using Hive Hibernate API
-    Also, give your verdict on its authenticity using any source you want
     """
-    url = "https://api.thehive.ai/api/v2/task/sync"
-    headers = {"Authorization": f"Token {os.getenv('HIVE_API_KEY')}"}
-    payload = {
-        "models": ["ai-generated-image-detector"],
-        "url": image_url
+    Detect if an image is AI-generated or manipulated using Reality Defender API.
+    """
+    url = "https://api.realitydefender.ai/v1/detect"
+    headers = {
+        "x-api-key": os.getenv("REALITY_DEFENDER_API_KEY"),
+        "Content-Type": "application/json",
     }
-    response = requests.post(url, json=payload, headers=headers, timeout=15)
-    return response.json()
+    payload = {"url": image_url, "type": "image"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+        analysis = result.get("result", {}).get("label", "Unknown")
+        confidence = result.get("result", {}).get("confidence", "N/A")
+        return {
+            "source": "Reality Defender",
+            "label": analysis,
+            "confidence": confidence,
+        }
+    except Exception as e:
+        logging.error(f"Reality Defender Image Error: {e}")
+        return {"error": str(e), "label": "Unknown"}
 
 @tool
 def detect_ai_video(video_url : str):
-    """ Detect if a given video is AI-generated and contains deepfake content
-    Also, give your verdict on its authenticity using any source you want
     """
-    url = "https://api.deepware.ai/api/v1/detect"
-    headers = {"Authorization": f"Bearer {os.getenv('DEEPWARE_API_KEY')}"}
-    payload = {"url": video_url}
-    response = requests.post(url, json=payload, headers=headers, timeout=30)
-    return response.json()
+    Detect if a given video contains deepfake content using Reality Defender API.
+    """
+    url = "https://api.realitydefender.ai/v1/detect"
+    headers = {
+        "x-api-key": os.getenv("REALITY_DEFENDER_API_KEY"),
+        "Content-Type": "application/json",
+    }
+    payload = {"url": video_url, "type": "video"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=60)
+        response.raise_for_status()
+        result = response.json()
+        analysis = result.get("result", {}).get("label", "Unknown")
+        confidence = result.get("result", {}).get("confidence", "N/A")
+        return {
+            "source": "Reality Defender",
+            "label": analysis,
+            "confidence": confidence,
+        }
+    except Exception as e:
+        logging.error(f"Reality Defender Video Error: {e}")
+        return {"error": str(e), "label": "Unknown"}
+
 
 fake_detector_agent = Agent(model=model, tools= [detect_ai_text, detect_ai_image, detect_ai_video])
