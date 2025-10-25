@@ -8,6 +8,8 @@ import urllib.parse
 import logging
 import asyncio
 from realitydefender import RealityDefender
+import aiohttp
+import aiofiles
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -56,44 +58,28 @@ def detect_ai_text(text: str):
         logging.error(f"ZeroGPT API Error: {e}")
         return {"error": str(e), "verdict": "Unknown"}
 
-@tool 
+@tool
 async def detect_ai_image(image_url: str):
-    """Detect if an image is AI-generated or manipulated using reality defender API.Give a verdict, probability and explanation supporting your verdict"""
+    """Detect if an image is AI-generated or manipulated using the Reality Defender API."""
     rd = RealityDefender(api_key=os.getenv("REALITY_DEFENDER_API_KEY"))
-    response = await rd.upload(file_path= image_url)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(image_url) as resp:
+            if resp.status != 200:
+                return {"error": f"Unable to fetch image. Status: {resp.status}"}
+            image_data = await resp.read()
+
+    tmp_path = "/tmp/temp_image.jpg"
+    async with aiofiles.open(tmp_path, "wb") as f:
+        await f.write(image_data)
+
+    response = await rd.upload(file_path=tmp_path)
     request_id = response["request_id"]
     result = await rd.get_result(request_id)
     return {
-        "status" : result['status'], 
-        "score"  : result['score']
+        "status": result.get("status"),
+        "score": result.get("score"),
+        "explanation": result.get("explanation", "No explanation provided.")
     }
-
-# @tool 
-# def detect_ai_image(image_url : str):
-#     """
-#     Detect if an image is AI-generated or manipulated using Reality Defender API.
-#     """
-#     url = "https://api.realitydefender.ai/v1/detect"
-#     headers = {
-#         "x-api-key": os.getenv("REALITY_DEFENDER_API_KEY"),
-#         "Content-Type": "application/json",
-#     }
-#     payload = {"url": image_url, "type": "image"}
-
-#     try:
-#         response = requests.post(url, json=payload, headers=headers, timeout=30)
-#         response.raise_for_status()
-#         result = response.json()
-#         analysis = result.get("result", {}).get("label", "Unknown")
-#         confidence = result.get("result", {}).get("confidence", "N/A")
-#         return {
-#             "source": "Reality Defender",
-#             "label": analysis,
-#             "confidence": confidence,
-#         }
-#     except Exception as e:
-#         logging.error(f"Reality Defender Image Error: {e}")
-#         return {"error": str(e), "label": "Unknown"}
 
 @tool
 def detect_ai_video(video_url : str):
