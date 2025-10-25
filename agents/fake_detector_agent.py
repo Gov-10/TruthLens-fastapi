@@ -82,31 +82,25 @@ async def detect_ai_image(image_url: str):
     }
 
 @tool
-def detect_ai_video(video_url : str):
-    """
-    Detect if a given video contains deepfake content using Reality Defender API.
-    """
-    url = "https://api.realitydefender.ai/v1/detect"
-    headers = {
-        "x-api-key": os.getenv("REALITY_DEFENDER_API_KEY"),
-        "Content-Type": "application/json",
+async def detect_ai_video(video_url : str):
+    """Detect if a video is AI-generated or manipulated using the Reality Defender API."""
+    rd= RealityDefender(api_key=os.getenv("REALITY_DEFENDER_API_KEY"))
+    async with aiohttp.ClientSession() as session:
+        async with session.get(video_url) as resp:
+            if resp.status != 200:
+                return {"error" : f"Unable to fetch video. Status= {resp.status}"}
+            video_data = await resp.read()
+    tmp_path= "/tmp/temp_video.mp4"
+    async with aiofiles.open(tmp_path, "wb") as f:
+            await f.write(video_data)
+    response = await rd.upload(file_path=tmp_path)
+    request_id = response["request_id"]
+    result = await rd.get_result(request_id)
+    return {
+        "status": result.get("status"),
+        "score": result.get("score"),
+        "explanation": result.get("explanation", "No explanation provided.")
     }
-    payload = {"url": video_url, "type": "video"}
-
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-        result = response.json()
-        analysis = result.get("result", {}).get("label", "Unknown")
-        confidence = result.get("result", {}).get("confidence", "N/A")
-        return {
-            "source": "Reality Defender",
-            "label": analysis,
-            "confidence": confidence,
-        }
-    except Exception as e:
-        logging.error(f"Reality Defender Video Error: {e}")
-        return {"error": str(e), "label": "Unknown"}
 
 
 fake_detector_agent = Agent(model=model, tools= [detect_ai_text, detect_ai_image, detect_ai_video])
