@@ -5,6 +5,7 @@ from agents.crawler_agent import crawler_agent
 from typing import Dict
 from agents.twitter_crawler_agent import twitter_crawler_agent
 from agents.fake_detector_agent import fake_detector_agent
+from agents.verification_agent import verification_agent
 app = FastAPI()
 
 class CityInput(BaseModel):
@@ -98,4 +99,14 @@ async def detect_fake(payload: UrlInput)-> Dict[str, str]:
     print("type of result:", type(result))
     print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
     return {"result": result.message["content"][0]["text"]}
+
+#VERIFICATION AGENT
+@app.post("/verify_text", response_model= Dict[str, str])
+async def verify_text()->Dict[str, str]:
+    query = "Simply return the fetched data from /reddit_war_news endpoint"
+    result = verification_agent(query)
+    print("type of result:", type(result))
+    print("keys:", getattr(result, "__dict__", result if isinstance(result, dict) else None))
+    return {"result": result.message["content"][0]["text"]}
+
 

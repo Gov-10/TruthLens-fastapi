@@ -4,9 +4,12 @@ import requests, os
 from dotenv import load_dotenv
 from datetime import datetime
 from requests.auth import HTTPBasicAuth
-import urlib.parse
+import urllib.parse
 import logging
-
+import asyncio
+from realitydefender import RealityDefender
+import aiohttp
+import aiofiles
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
@@ -17,9 +20,17 @@ model = GeminiModel(
 )
 
 @tool
-def verify_text(news: dict):
-    """Verify input text's authenticity using google factcheck API and GNews API.
-    Return verified summaries, credibility scores and factual verdicts.
+def verify_text():
+    """Return the fetched data from /reddit_war_news endpoint
     """
+    data = requests.post("localhost:8080/reddit_war_news")
+    if data.status_code == 200:
+        return {"data" : data.json(), "code" : data.status_code}
+    return {"code" : data.status_code}
+
+verification_agent= Agent(model=model, tools=[verify_text])
+
+
+
     
 

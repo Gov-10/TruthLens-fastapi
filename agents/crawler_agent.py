@@ -1,9 +1,10 @@
 from strands import Agent, tool
 from strands.models.gemini import GeminiModel
-import requests, os
+from requests.auth import HTTPBasicAuth
+import requests, os, urllib.parse
 from dotenv import load_dotenv
 from datetime import datetime
-from requests.auth import HTTPBasicAuth
+import logging
 
 load_dotenv()
 
@@ -12,16 +13,6 @@ model = GeminiModel(
     model_id="gemini-2.5-flash",
     params={"temperature": 0.4, "max_output_tokens": 2048, "top_p": 0.9, "top_k": 40}
 )
-
-from strands import Agent, tool
-from strands.models.gemini import GeminiModel
-from requests.auth import HTTPBasicAuth
-import requests, os, urllib.parse
-from dotenv import load_dotenv
-from datetime import datetime
-import logging
-
-load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 @tool
